@@ -34,8 +34,9 @@ LinkedList AllocateLinkedList(void) {
 
   // Step 1.
   // initialize the newly allocated record structure
-
-
+  ll->num_elements = 0U;
+  ll->head = NULL;
+  ll->tail = NULL;
 
   // return our newly minted linked list
   return ll;
@@ -51,7 +52,15 @@ void FreeLinkedList(LinkedList list,
   // sweep through the list and free all of the nodes' payloads as
   // well as the nodes themselves
   while (list->head != NULL) {
+    LinkedListNodePtr current = list->head;
 
+    // Free the payload of this node.
+    payload_free_function(current->payload);
+
+    list->head = current->next;
+
+    // Free the current node.
+    free(current);
   }
 
   // free the list record
@@ -94,7 +103,16 @@ bool PushLinkedList(LinkedList list, LLPayload_t payload) {
   // STEP 3.
   // typical case; list has >=1 elements
 
+  // Reset the first node before pushing.
+  list->head->prev = ln;
 
+  // Setup the node being pushing.
+  ln->next = list->head;
+  ln->prev = NULL;
+
+  // Reset LinkedListHead.
+  list->head = ln;
+  list->num_elements++;
 
   // return success
   return true;
@@ -112,7 +130,27 @@ bool PopLinkedList(LinkedList list, LLPayload_t *payload_ptr) {
   // Be sure to call free() to deallocate the memory that was
   // previously allocated by PushLinkedList().
 
+  if (list->num_elements == 0) {
+    // Fail and return false if the list is empty.
+    return false;
+  }
 
+  *payload_ptr = list->head->payload;
+  LinkedListNodePtr poped = list->head;
+
+  // Reset LinkedListHead.
+  list->head = list->head->next;
+
+  // The case that only one element in the List.
+  if (list->num_elements == 1) {
+    list->tail = NULL;
+  } else {
+    // Number of elements >= 2, then reset the current first (head) node.
+    list->head->prev = NULL;
+  }
+
+  list->num_elements--;
+  free(poped);
 
   return true;
 }
@@ -125,7 +163,30 @@ bool AppendLinkedList(LinkedList list, LLPayload_t payload) {
   // PushLinkedList, but obviously you need to add to the end
   // instead of the beginning.
 
+  if (list->num_elements == 0) {
+    // If the list is previously empty, so as push (to head).
+    return PushLinkedList(list, payload);
+  }
 
+  // Typical (elements >= 2) cases.
+  LinkedListNodePtr ln =
+    (LinkedListNodePtr) malloc(sizeof(LinkedListNode));
+
+  if (ln == NULL) {
+    // out of memory
+    return false;
+  }
+  // Set the payload.
+  ln->payload  = payload;
+
+  // Set up the new node.
+  list->tail->next = ln;
+  ln->prev = list->tail;
+  ln->next = NULL;
+
+  // Reset LinkedListHead.
+  list->tail = ln;
+  list->num_elements++;
 
   return true;
 }
@@ -136,8 +197,27 @@ bool SliceLinkedList(LinkedList list, LLPayload_t *payload_ptr) {
   Verify333(list != NULL);
 
   // Step 6: implement SliceLinkedList.
+  if (list->num_elements == 0) {
+    // Fail and return false if the list is empty.
+    return false;
+  }
 
+  *payload_ptr = list->tail->payload;
+  LinkedListNodePtr sliced = list->tail;
 
+  // Reset LinkedListHead.
+  list->tail = list->tail->prev;
+
+  // The case that only one element in the List.
+  if (list->num_elements == 1) {
+    list->head = NULL;
+  } else {
+    // Number of elements >= 2, then reset the current last (tail) node.
+    list->tail->next = NULL;
+  }
+
+  list->num_elements--;
+  free(sliced);
 
   return true;
 }
@@ -231,8 +311,10 @@ bool LLIteratorNext(LLIter iter) {
 
   // Step 7: if there is another node beyond the iterator, advance to it,
   // and return true.
-
-
+  if (LLIteratorHasNext(iter)) {
+    iter->node = iter->node->next;
+    return true;
+  }
 
   // Nope, there isn't another node, so return failure.
   return false;
@@ -259,8 +341,10 @@ bool LLIteratorPrev(LLIter iter) {
 
   // Step 8:  if there is another node beyond the iterator, advance to it,
   // and return true.
-
-
+  if (LLIteratorHasPrev(iter)) {
+    iter->node = iter->node->prev;
+    return true;
+  }
 
   // nope, so return failure.
   return false;
@@ -296,8 +380,38 @@ bool LLIteratorDelete(LLIter iter,
   // Be sure to call the payload_free_function to free the payload
   // the iterator is pointing to, and also free any LinkedList
   // data structure element as appropriate.
+  LinkedListNodePtr previous = iter->node->prev;
+  LinkedListNodePtr current = iter->node;
+  LinkedListNodePtr next = iter->node->next;
 
+  iter->list->num_elements--;
 
+  // Free the payload of the node being deleted and itself.
+  payload_free_function(current->payload);
+  free(current);
+
+  if (LLIteratorHasNext(iter)) {
+    if (previous != NULL) {
+      // At middle.
+      previous->next = next;
+    } else {
+      // At head.
+      iter->list->head = next;
+    }
+    next->prev = previous;
+    iter->node = next;
+  } else if (LLIteratorHasPrev(iter)) {
+    // At tail.
+    previous->next = NULL;
+    iter->list->tail = previous;
+    iter->node = previous;
+  } else {
+    // At the only element (only one exist in the list).
+    iter->node = NULL;
+    iter->list->head = NULL;
+    iter->list->tail = NULL;
+    return false;
+  }
 
   return true;
 }
