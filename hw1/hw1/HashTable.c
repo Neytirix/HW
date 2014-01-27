@@ -405,7 +405,9 @@ int HTIteratorGet(HTIter iter, HTKeyValue *keyvalue) {
     return 0;
   }
 
-  LLIteratorGetPayload(iter->bucket_it, (void **) &keyvalue);
+  HTKeyValue *payload = NULL;
+  LLIteratorGetPayload(iter->bucket_it, (void **) &payload);
+  *keyvalue = *payload;
 
   return 1;
 }

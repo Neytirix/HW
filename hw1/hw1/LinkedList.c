@@ -386,10 +386,7 @@ bool LLIteratorDelete(LLIter iter,
 
   iter->list->num_elements--;
 
-  // Free the payload of the node being deleted and itself.
-  payload_free_function(current->payload);
-  free(current);
-
+  bool notempty = true;
   if (LLIteratorHasNext(iter)) {
     if (previous != NULL) {
       // At middle.
@@ -410,10 +407,14 @@ bool LLIteratorDelete(LLIter iter,
     iter->node = NULL;
     iter->list->head = NULL;
     iter->list->tail = NULL;
-    return false;
+    notempty = false;
   }
 
-  return true;
+  // Free the payload of the node being deleted and itself.
+  payload_free_function(current->payload);
+  free(current);
+
+  return notempty;
 }
 
 bool LLIteratorInsertBefore(LLIter iter, LLPayload_t payload) {
