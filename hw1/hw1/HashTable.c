@@ -194,7 +194,7 @@ static int SearchKey(LinkedList list, HTKey_t key,
     return 0;
   }
   int status = 1;
-  HTKeyValue *current = NULL;
+  HTKeyValuePtr current = NULL;
   do {
     LLIteratorGetPayload(iter, (void **) &current);
     if (current->key == key) {
@@ -405,9 +405,9 @@ int HTIteratorGet(HTIter iter, HTKeyValue *keyvalue) {
     return 0;
   }
 
-  HTKeyValue *payload = NULL;
-  LLIteratorGetPayload(iter->bucket_it, (void **) &payload);
-  *keyvalue = *payload;
+  HTKeyValuePtr getpayload = NULL;
+  LLIteratorGetPayload(iter->bucket_it, (void **) &getpayload);
+  *keyvalue = *getpayload;
 
   return 1;
 }
